@@ -1,5 +1,5 @@
 ////////-Base sequence-----////
-class base_sequence_apb extends uvm_sequence #(apb_xtns);
+class base_sequence_apb extends uvm_sequence #(apb_xtn);
 
         `uvm_object_utils(base_sequence_apb)
 
@@ -26,7 +26,7 @@ endfunction
 task test_sequence_1::body();
         repeat(10);
                 begin
-                        req = apb_xtns::type_id::create("req");
+                        req = apb_xtn::type_id::create("req");
                         start_item(req);
                         assert(req.randomize());
                         finish_item(req);
