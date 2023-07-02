@@ -58,7 +58,7 @@ function vseq::new(string name = "vseq");
         super.new(name);
 endfunction: new
 
-//------task bosy------//
+//------task body------//
 task vseq::body();
 
         super.body();
