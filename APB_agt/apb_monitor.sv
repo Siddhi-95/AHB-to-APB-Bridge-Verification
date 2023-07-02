@@ -1,42 +1,42 @@
-///APB MOnitor////////////
 
 class apb_monitor extends uvm_monitor;
 
-        //factory registeration
+        //Factory registration
         `uvm_component_utils (apb_monitor)
 
-        //local handle for interface
         virtual apb_if.APB_MON_MP vif;
-        apb_xtns xtn;
-        apb_config apb_cfg;
 
-        uvm_analysis_port #(apb_xtns) apb;
+        apb_agent_config apb_cfg;
 
-        extern function new(string name = "apb_monitor", uvm_component parent);
+        //Analysis port to send the data to SB
+        uvm_analysis_port #(apb_xtn) monitor_port;
+
+        apb_xtn xtn;
+
+        extern function new(string name="APB_MONITOR",uvm_component parent);
         extern function void build_phase(uvm_phase phase);
         extern function void connect_phase(uvm_phase phase);
         extern task run_phase(uvm_phase phase);
-        extern task collect_data();
+        extern task collect_data;
 
 endclass
 
-////////---constructor-----//////
-function apb_monitor::new(string name = "apb_monitor", uvm_component parent);
+//---------Constructor----------//
+function apb_monitor::new(string name="APB_MONITOR",uvm_component parent);
         super.new(name,parent);
-        apb = new("apb", this);
+        monitor_port=new("monitor_port",this);
 endfunction
-/////------Build Phase-----/////
+
+//-------Build Phase----------//
 function void apb_monitor::build_phase(uvm_phase phase);
+        if(!uvm_config_db #(apb_agent_config)::get(this,"","apb_agent_config",apb_cfg))
+                `uvm_fatal("MONITOR","cannot get config data");
         super.build_phase(phase);
-
-        if(!uvm_config_db #(apb_config)::get(this, "", "apb_config", apb_cfg))
-                `uvm_fatal("apb_monitor", "cannot get the config file")
-
 endfunction
-////-----connect phase-------///////
+
 function void apb_monitor::connect_phase(uvm_phase phase);
         super.connect_phase(phase);
-        vif = apb_cfg.aif;
+	vif=apb_cfg.vif;
 endfunction
 
 //////---Run Phase-----/////
@@ -49,8 +49,8 @@ endtask
 
 ///----collect data------/////
 task apb_monitor::collect_data();
-        apb_xtns xtn;
-        xtn = apb_xtns::type_id::create("xtn");
+        apb_xtn xtn;
+        xtn = apb_xtn::type_id::create("xtn");
 
         wait(vif.apb_mon_cb.Penable)
                 xtn.Paddr = vif.apb_mon_cb.Paddr;
@@ -59,15 +59,16 @@ task apb_monitor::collect_data();
                 xtn.Pselx = vif.apb_mon_cb.Pselx;//collect control info
 
         if(xtn.Pwrite == 1)
-				xtn.Pwdata = vif.apb_mon_cb.Pwdata; //collect data
+		xtn.Pwdata = vif.apb_mon_cb.Pwdata; //collect data
         else
                 xtn.Prdata = vif.apb_mon_cb.Prdata;
 
-        @(vif.apb_mon_cb); //give 1 cycle delay - Setup + Prenable
+        @(vif.apb_mon_cb); //give 1 cycle delay - Setup + enable
+	
+	xtn.print();
 
-        apb.write(xtn);
+        monitor_port.write(xtn);
 
         `uvm_info("apb_monitor", "Displaying apb_monitor data", UVM_LOW)
         apb_cfg.mon_data_count++;
 endtask
-
